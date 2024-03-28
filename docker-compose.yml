@@ -2,58 +2,39 @@ version: "3.9"
 
 services:
   kong:
-    image: kong/kong-gateway:3.4
+    image: kong:3.4
+    build:
+      context: .
+      dockerfile: ./docker/kong/Dockerfile
+    command: kong docker-start
+    restart: always
     ports:
-      - 80:8000
+      - 80:8080
       - 443:8443
       - 8001:8001
+      - 8002:8002
       - 8444:8444
     environment:
       - KONG_DATABASE=postgres
       - KONG_PG_HOST=postgres
       - KONG_PG_USER=kong
-      - KONG_PG_PASSWORD=password
-      - POSTGRES_DB=kong
-      - KONG_PROXY_LISTEN=0.0.0.0:8000, 0.0.0.0:8443 ssl
+      - KONG_PG_PASSWORD=mFXxRW37CGET
+      - KONG_PROXY_LISTEN=0.0.0.0:8080, 0.0.0.0:8443 ssl
       - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+    volumes:
+      - ./docker/kong/templates/nginx_kong.lua:/usr/local/share/lua/5.1/kong/templates/nginx_kong.lua
     env_file:
       - .env
     networks:
       - local_network
 
-  kong-migrations:
-    profiles:
-      - initial
-    build:
-      context: .
-      dockerfile: ./docker/kong-migrations/Dockerfile
-    entrypoint: /usr/local/bin/entrypoint.sh
-    environment:
-      - KONG_DATABASE=postgres
-      - KONG_PG_HOST=postgres
-      - KONG_PG_USER=kong
-      - KONG_PG_PASSWORD=password
-      - POSTGRES_DB=kong
-    networks:
-      - local_network
-
-  kong-manager:
-    build:
-      context: .
-      dockerfile: ./docker/kong-manager/Dockerfile
-    ports:
-      - 8002:8002
-    volumes:
-      - ./docker/kong-manager/server_blocks/default.conf:/opt/bitnami/openresty/nginx/conf/server_blocks/default.conf
-
   postgres:
-    image: postgres:13.12-alpine
+    image: postgres:16.2-alpine
+    restart: always
     volumes:
       - postgres_volume:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=kong
-      - POSTGRES_DB=kong
-      - POSTGRES_PASSWORD=password
+    env_file:
+      - .env
     networks:
       - local_network
 
